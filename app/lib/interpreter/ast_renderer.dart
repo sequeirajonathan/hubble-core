@@ -322,7 +322,7 @@ class LayoutRenderer extends StatelessWidget {
               crossAxisCount: 2,
               mainAxisSpacing: 8,
               crossAxisSpacing: 8,
-              childAspectRatio: 0.85,
+              childAspectRatio: 1.15,
             ),
             itemCount: products.length,
             itemBuilder: (_, i) => ProductTile(

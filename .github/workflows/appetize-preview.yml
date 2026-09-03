@@ -1,0 +1,81 @@
+name: Appetize preview (iOS simulator)
+
+# On-demand preview: builds an unsigned iOS simulator binary and publishes it
+# to Appetize.io so it can be opened (and its QR code scanned onto a phone)
+# straight from a browser - no Mac, no Apple Developer account, no TestFlight
+# wait. Requires the APPETIZE_API_TOKEN repository secret (Appetize dashboard
+# -> API keys). Re-run any time you want a fresh preview link.
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/hubble-marketplace-prd-el139h]
+    paths: ["app/**", ".github/workflows/appetize-preview.yml"]
+
+concurrency:
+  group: appetize-preview
+  cancel-in-progress: true
+
+jobs:
+  build-and-publish:
+    runs-on: macos-15
+    timeout-minutes: 30
+    permissions:
+      contents: write # default GITHUB_TOKEN is read-only; releases need write
+    defaults:
+      run:
+        working-directory: app
+    env:
+      # Not secrets: the publishable key is meant to ship inside every client;
+      # RLS is what actually protects data. See backend/migrations/0001_identity.sql.
+      SUPABASE_URL: https://nnbuceuvpzxyepacdjkj.supabase.co
+      SUPABASE_ANON_KEY: sb_publishable_cg8eNP21Qf5Zm1j5vURrDQ_3-OleN3O
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.2
+          cache: true
+      - run: flutter pub get
+      - name: Build unsigned iOS simulator app
+        run: |
+          flutter build ios --simulator --no-codesign \
+            --dart-define=SUPABASE_URL="$SUPABASE_URL" \
+            --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY"
+      - name: Zip the simulator build
+        run: |
+          cd build/ios/iphonesimulator
+          zip -r Runner.zip Runner.app
+      - name: Publish as a GitHub release asset (Appetize needs a public URL)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="appetize-preview"
+          gh release delete "$tag" --repo "${{ github.repository }}" --yes --cleanup-tag 2>/dev/null || true
+          gh release create "$tag" build/ios/iphonesimulator/Runner.zip \
+            --repo "${{ github.repository }}" \
+            --title "Appetize preview build" \
+            --notes "Automated unsigned iOS simulator build, republished on every run of the Appetize preview workflow. Commit: ${{ github.sha }}." \
+            --prerelease
+      - name: Upload to Appetize and print the preview link
+        env:
+          APPETIZE_API_TOKEN: ${{ secrets.APPETIZE_API_TOKEN }}
+        run: |
+          if [ -z "$APPETIZE_API_TOKEN" ]; then
+            echo "::error::APPETIZE_API_TOKEN repository secret is not set. Add it under Settings -> Secrets and variables -> Actions -> New repository secret (value from your Appetize account -> API keys)."
+            exit 1
+          fi
+          asset_url="https://github.com/${{ github.repository }}/releases/download/appetize-preview/Runner.zip"
+          response=$(curl -sS -X POST https://api.appetize.io/v1/apps \
+            -H "X-API-KEY: $APPETIZE_API_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"url\": \"$asset_url\", \"platform\": \"ios\", \"note\": \"Hubble preview - ${{ github.sha }}\"}")
+          echo "$response"
+          publicKey=$(echo "$response" | python3 -c "import sys, json; print(json.load(sys.stdin)['publicKey'])")
+          {
+            echo "## Appetize preview ready"
+            echo ""
+            echo "Open this on the machine you're viewing Actions from, or scan the QR code Appetize shows on that page with your iPhone:"
+            echo ""
+            echo "**https://appetize.io/app/${publicKey}**"
+          } >> "$GITHUB_STEP_SUMMARY"
