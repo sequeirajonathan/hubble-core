@@ -1,0 +1,60 @@
+# Hubble mobile distribution lanes.
+#
+#   bundle exec fastlane ios beta build_number:123
+#   bundle exec fastlane android internal build_number:123
+#
+# Both lanes compile the Flutter project with runtime config passed through
+# --dart-define so nothing sensitive is checked in.
+default_platform(:ios)
+
+DART_DEFINES = lambda do
+  %w[SUPABASE_URL SUPABASE_ANON_KEY AUTH_REDIRECT]
+    .select { |k| ENV[k] && !ENV[k].empty? }
+    .map { |k| "--dart-define=#{k}=#{ENV[k]}" }
+    .join(" ")
+end
+
+platform :ios do
+  desc "Build a signed IPA and upload it to TestFlight"
+  lane :beta do |options|
+    build_number = options[:build_number] || Time.now.strftime("%Y%m%d%H%M")
+    setup_ci if ENV["CI"]
+
+    app_store_connect_api_key(
+      key_id: ENV.fetch("APP_STORE_CONNECT_API_KEY_KEY_ID"),
+      issuer_id: ENV.fetch("APP_STORE_CONNECT_API_KEY_ISSUER_ID"),
+      key_content: ENV.fetch("APP_STORE_CONNECT_API_KEY_KEY"),
+      is_key_content_base64: true,
+      in_house: false
+    )
+
+    match(type: "appstore", readonly: true)
+
+    sh("cd .. && flutter build ipa --release --build-number=#{build_number} " \
+       "--export-options-plist=ios/ExportOptions.plist #{DART_DEFINES.call}")
+
+    upload_to_testflight(
+      ipa: "../build/ios/ipa/hubble.ipa",
+      skip_waiting_for_build_processing: true,
+      changelog: "Automated build #{build_number} from #{ENV['GITHUB_SHA'] || 'local'}"
+    )
+  end
+end
+
+platform :android do
+  desc "Build a signed AAB and push it to the Play Internal testing track"
+  lane :internal do |options|
+    build_number = options[:build_number] || Time.now.strftime("%Y%m%d%H%M")
+
+    sh("cd .. && flutter build appbundle --release --build-number=#{build_number} #{DART_DEFINES.call}")
+
+    upload_to_play_store(
+      track: "internal",
+      aab: "../build/app/outputs/bundle/release/app-release.aab",
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+      release_status: "draft"
+    )
+  end
+end

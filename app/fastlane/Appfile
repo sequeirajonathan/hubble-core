@@ -1,0 +1,8 @@
+# Identifiers are read from the environment in CI; fill these for local runs.
+app_identifier(ENV.fetch("HUBBLE_IOS_BUNDLE_ID", "com.hubble.hubble"))
+apple_id(ENV["APPLE_ID"])
+itc_team_id(ENV["APP_STORE_CONNECT_TEAM_ID"])
+team_id(ENV["APPLE_DEVELOPER_TEAM_ID"])
+
+json_key_file(ENV.fetch("PLAY_STORE_JSON_KEY_PATH", "fastlane/play-store-key.json"))
+package_name(ENV.fetch("HUBBLE_ANDROID_PACKAGE", "com.hubble.hubble"))

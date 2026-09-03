@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Hubble app icon: isometric structural "H" bracket in Safety Amber on a charcoal tile. -->
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#262626"/>
+      <stop offset="1" stop-color="#1A1A1A"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="224" fill="url(#tile)"/>
+  <rect x="48" y="48" width="928" height="928" rx="192" fill="none" stroke="#4A4A4A" stroke-width="12"/>
+
+  <!-- Isometric extrusion (shadow faces) -->
+  <g transform="translate(512 540)">
+    <g fill="#B85400">
+      <!-- left post side -->
+      <polygon points="-250,-260 -250,240 -180,280 -180,-220"/>
+      <!-- right post side -->
+      <polygon points="30,-260 30,240 100,280 100,-220"/>
+      <!-- crossbar underside -->
+      <polygon points="-110,20 30,20 100,60 -40,60"/>
+    </g>
+    <!-- Top faces (emblem body) -->
+    <g fill="#FF7A00">
+      <polygon points="-320,-300 -180,-300 -180,-80 -40,-80 -40,-300 100,-300 100,220 -40,220 -40,0 -180,0 -180,220 -320,220"/>
+    </g>
+    <!-- Bolt-head details -->
+    <g fill="#1A1A1A">
+      <circle cx="-250" cy="-230" r="26"/>
+      <circle cx="30" cy="-230" r="26"/>
+      <circle cx="-250" cy="150" r="26"/>
+      <circle cx="30" cy="150" r="26"/>
+    </g>
+    <g fill="none" stroke="#FFB066" stroke-width="10" stroke-linecap="round">
+      <line x1="-266" y1="-230" x2="-234" y2="-230"/>
+      <line x1="14" y1="-230" x2="46" y2="-230"/>
+      <line x1="-266" y1="150" x2="-234" y2="150"/>
+      <line x1="14" y1="150" x2="46" y2="150"/>
+    </g>
+  </g>
+</svg>

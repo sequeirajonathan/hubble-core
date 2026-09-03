@@ -1,0 +1,50 @@
+# Supabase CLI project configuration for Hubble.
+# Migrations live in ../migrations (source of truth); ./migrations is a symlink.
+project_id = "hubble-core"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 200
+
+[db]
+port = 54322
+major_version = 16
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
+
+[auth]
+enabled = true
+site_url = "hubble://auth-callback"
+additional_redirect_urls = ["hubble://auth-callback", "http://127.0.0.1:54321"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = false
+otp_length = 6
+otp_expiry = 600
+
+[auth.sms]
+enable_signup = true
+enable_confirmations = true
+
+[edge_runtime]
+enabled = true
+policy = "per_worker"
+
+[functions.stripe-split]
+verify_jwt = false   # webhook path is signature-verified; checkout path verifies the JWT itself
+
+[functions.review-sync]
+verify_jwt = false   # invoked by pg_cron / scheduler with the service role key
+
+[functions.ai-generator]
+verify_jwt = true

@@ -1,0 +1,45 @@
+# --- Flutter / Dart ---
+app/.dart_tool/
+app/.packages
+app/build/
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+app/pubspec.lock.bak
+app/ios/Pods/
+app/ios/.symlinks/
+app/ios/Flutter/ephemeral/
+app/ios/Flutter/Generated.xcconfig
+app/ios/Flutter/flutter_export_environment.sh
+app/ios/Runner.xcworkspace/xcuserdata/
+app/android/.gradle/
+app/android/local.properties
+app/android/key.properties
+app/android/**/*.keystore
+app/android/**/*.jks
+app/*.env
+app/.env*
+app/coverage/
+**/.idea/
+**/*.iml
+
+# --- Fastlane ---
+app/fastlane/report.xml
+app/fastlane/Preview.html
+app/fastlane/screenshots/
+app/fastlane/test_output/
+app/fastlane/.env*
+
+# --- Supabase ---
+backend/supabase/.branches/
+backend/supabase/.temp/
+backend/supabase/.env*
+backend/.env*
+node_modules/
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+*.swp
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json

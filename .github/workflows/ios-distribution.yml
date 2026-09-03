@@ -1,0 +1,51 @@
+name: iOS distribution (TestFlight)
+
+# Every merge to main that touches the app packages a signed build with
+# Fastlane and uploads it to TestFlight. Signing is handled by `match`.
+on:
+  push:
+    branches: [main]
+    paths: ["app/**", ".github/workflows/ios-distribution.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: ios-distribution
+  cancel-in-progress: false
+
+jobs:
+  testflight:
+    runs-on: macos-15
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: app
+    env:
+      # App Store Connect API key (JSON key file contents, base64 encoded).
+      APP_STORE_CONNECT_API_KEY_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY_ID }}
+      APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
+      APP_STORE_CONNECT_API_KEY_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY }}
+      # fastlane match
+      MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+      MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+      MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+      # Runtime configuration compiled into the bundle via --dart-define
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      FASTLANE_SKIP_UPDATE_CHECK: "1"
+      LC_ALL: en_US.UTF-8
+      LANG: en_US.UTF-8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.2
+          cache: true
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+          working-directory: app
+      - run: flutter pub get
+      - name: Build + upload to TestFlight
+        run: bundle exec fastlane ios beta build_number:${{ github.run_number }}

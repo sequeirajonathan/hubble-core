@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  flutter:
+    name: Flutter analyze + test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.2
+          cache: true
+      - run: flutter pub get
+      - run: dart format --output=none --set-exit-if-changed lib test
+      - run: flutter analyze --fatal-infos
+      - run: flutter test --coverage
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: flutter-coverage
+          path: app/coverage/lcov.info
+          if-no-files-found: ignore
+
+  edge-functions:
+    name: Deno check + test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend/supabase/functions
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: deno fmt --check
+      - run: deno lint
+      - run: deno check $(find . -name '*.ts' -not -path '*/node_modules/*')
+      - run: deno test --allow-env --allow-net=127.0.0.1
+
+  migrations:
+    name: Apply SQL migrations
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply migrations, then run the SQL behavioural tests
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+          bash backend/scripts/apply_migrations.sh
+          bash backend/scripts/run_sql_tests.sh

@@ -1,0 +1,63 @@
+name: Supabase deploy
+
+# Merges to main that touch the backend push schema migrations and redeploy
+# every edge function to the production project.
+on:
+  push:
+    branches: [main]
+    paths: ["backend/**", ".github/workflows/supabase-deploy.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: supabase-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Link project
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF" --workdir .
+      - name: Push migrations
+        run: supabase db push --workdir . --include-all
+      - name: Deploy edge functions
+        run: |
+          for dir in supabase/functions/*/; do
+            name=$(basename "$dir")
+            case "$name" in _*) continue ;; esac
+            echo "::group::deploy $name"
+            supabase functions deploy "$name" --workdir . --project-ref "$SUPABASE_PROJECT_REF"
+            echo "::endgroup::"
+          done
+      - name: Sync function secrets
+        # Only secrets that exist in the repository environment are pushed.
+        run: |
+          set -eu
+          args=()
+          for key in STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET GOOGLE_PLACES_API_KEY YELP_API_KEY ANTHROPIC_API_KEY HUBBLE_PLATFORM_FEE_BPS; do
+            val="$(printenv "$key" || true)"
+            if [ -n "$val" ]; then args+=("$key=$val"); fi
+          done
+          if [ "${#args[@]}" -gt 0 ]; then
+            supabase secrets set --workdir . --project-ref "$SUPABASE_PROJECT_REF" "${args[@]}"
+          fi
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          GOOGLE_PLACES_API_KEY: ${{ secrets.GOOGLE_PLACES_API_KEY }}
+          YELP_API_KEY: ${{ secrets.YELP_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          HUBBLE_PLATFORM_FEE_BPS: ${{ vars.HUBBLE_PLATFORM_FEE_BPS }}
