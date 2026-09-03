@@ -81,34 +81,41 @@ GoRouter buildRouter(SessionController session) => GoRouter(
         ),
       ],
     ),
-    StatefulShellRoute.indexedStack(
-      builder: (_, state, shell) => VendorShell(vendorId: state.pathParameters['vendorId']!, shell: shell),
-      branches: [
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
-              path: '/vendor/:vendorId',
-              builder: (_, s) => DashboardScreen(vendorId: s.pathParameters['vendorId']!),
-            ),
-          ],
-        ),
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
-              path: '/vendor/:vendorId/design',
-              builder: (_, s) => DesignPreviewScreen(vendorId: s.pathParameters['vendorId']!),
-            ),
-          ],
-        ),
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
-              path: '/vendor/:vendorId/menu',
-              builder: (_, s) => MenuManagementScreen(vendorId: s.pathParameters['vendorId']!),
-            ),
-          ],
-        ),
-      ],
+    GoRoute(
+      path: '/vendor/:vendorId',
+      parentNavigatorKey: _rootKey,
+      builder: (_, state) {
+        final id = state.pathParameters['vendorId']!;
+        return VendorShell(
+          vendorId: id,
+          currentIndex: 0,
+          child: DashboardScreen(vendorId: id),
+        );
+      },
+    ),
+    GoRoute(
+      path: '/vendor/:vendorId/design',
+      parentNavigatorKey: _rootKey,
+      builder: (_, state) {
+        final id = state.pathParameters['vendorId']!;
+        return VendorShell(
+          vendorId: id,
+          currentIndex: 1,
+          child: DesignPreviewScreen(vendorId: id),
+        );
+      },
+    ),
+    GoRoute(
+      path: '/vendor/:vendorId/menu',
+      parentNavigatorKey: _rootKey,
+      builder: (_, state) {
+        final id = state.pathParameters['vendorId']!;
+        return VendorShell(
+          vendorId: id,
+          currentIndex: 2,
+          child: MenuManagementScreen(vendorId: id),
+        );
+      },
     ),
   ],
 );
